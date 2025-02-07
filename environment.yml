@@ -9,7 +9,7 @@ dependencies:
   - cmake  # Required for dlib
   - dlib  # Prebuilt dlib version from conda-forge
   - face-recognition
-  - joblib
   - pip
   - pip:
       - face-recognition
+      - joblib
