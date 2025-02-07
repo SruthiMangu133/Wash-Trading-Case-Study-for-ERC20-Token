@@ -24,9 +24,6 @@ models = {
     "ARIMA": load_model_model("arima_model")
 }
 
-# Print models for debugging
-st.write("Loaded Models:", models)
-
 # Function to build transaction graph and compute centrality features
 def build_graph(df):
     G = nx.DiGraph()
