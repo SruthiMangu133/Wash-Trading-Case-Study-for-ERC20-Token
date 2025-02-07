@@ -11,7 +11,7 @@ from tensorflow.keras.models import load_model
 
 # Load models and scalers
 def load_model_model(model_name):
-    return joblib.load(f"{model_name}.pkl")
+    return joblib.load("models", f"{model_name}.pkl")
 
 # Function to build transaction graph and compute centrality features
 def build_graph(df):
