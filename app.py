@@ -117,13 +117,13 @@ def preprocess_data(df):
 
 # Load models
 models = {
-    "Isolation Forest": load_model_model("iso_forest_model"),
-    "Local Outlier Factor": load_model_model("lof_model"),
-    "One-Class SVM": load_model_model("best_model"),
-    "ARIMA": load_model_model("arima_model")  # Ensure proper saving/loading
+    "Isolation Forest": load_model_model("models/iso_forest_model"),
+    "Local Outlier Factor": load_model_model("models/lof_model"),
+    "One-Class SVM": load_model_model("models/best_model"),
+    "ARIMA": load_model_model("models/arima_model")  # Ensure proper saving/loading
 }
 # Load the pre-trained LSTM model, ignoring the loss function
-lstm_model = load_model('lstm_anomaly_detector.h5', compile=False)
+lstm_model = load_model('models/lstm_anomaly_detector.h5', compile=False)
 
 # Function to plot anomalies
 def plot_anomalies_iso(df, model_name):
