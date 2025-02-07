@@ -12,6 +12,12 @@ from tensorflow.keras.models import load_model
 # Load models and scalers
 def load_model_model(model_name):
     return joblib.load("models", f"{model_name}.pkl")
+    models = {
+    "Isolation Forest": load_model_model("iso_forest_model"),
+    "Local Outlier Factor": load_model_model("lof_model"),
+    "One-Class SVM": load_model_model("best_model"),
+    "ARIMA": load_model_model("arima_model")
+}
 
 # Function to build transaction graph and compute centrality features
 def build_graph(df):
