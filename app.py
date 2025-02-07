@@ -1,4 +1,3 @@
-import os
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -9,20 +8,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
-def load_model_model(model_name):
-    file_path = os.path.join("models", f"{model_name}.pkl")  
-    if not os.path.exists(file_path):  
-        print(f" Warning: Model file '{file_path}' not found!")
-        return None
-    return joblib.load(file_path)  
 
-# Load models
-models = {
-    "Isolation Forest": load_model_model("iso_forest_model"),
-    "Local Outlier Factor": load_model_model("lof_model"),
-    "One-Class SVM": load_model_model("best_model"),
-    "ARIMA": load_model_model("arima_model")
-}
+# Load models and scalers
+def load_model_model(model_name):
+    return joblib.load(f"{model_name}.pkl")
 
 # Function to build transaction graph and compute centrality features
 def build_graph(df):
