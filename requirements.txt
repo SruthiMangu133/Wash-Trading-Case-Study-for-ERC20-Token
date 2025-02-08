@@ -9,3 +9,4 @@ seaborn
 scikit-learn
 tensorflow
 statsmodels
+openpyxl
