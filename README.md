@@ -1,5 +1,5 @@
 Project Name: Wash Trading Detection and Anomaly Modeling
-See it in action: https://wash-trading-case-study-for-erc20-token.streamlit.app/
+ See it in action: https://wash-trading-case-study-for-erc20-token.streamlit.app/
 
 The project contributers
 2025
