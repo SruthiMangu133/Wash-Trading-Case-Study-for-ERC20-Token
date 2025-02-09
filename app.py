@@ -234,9 +234,9 @@ def predict_anomalies_arima(df, arima_model):
 # Ensemble model
 def ensemble_prediction(processed_data):
     # Get individual predictions
-    iso_forest = load_model_model("iso_forest_model")
-    lof = load_model_model("lof_model")
-    svm = load_model_model("best_model")
+    iso_forest = load_model_model("models/iso_forest_model")
+    lof = load_model_model("models/lof_model")
+    svm = load_model_model("models/best_model")
     
     iso_forest_pred = iso_forest.predict(processed_data)
     lof_pred = lof.predict(processed_data)
