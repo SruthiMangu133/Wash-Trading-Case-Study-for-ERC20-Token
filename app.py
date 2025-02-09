@@ -8,10 +8,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import load_model
+import os
 
 # Load models and scalers
 def load_model_model(model_name):
-    return joblib.load(f"{model_name}.pkl")
+    model_path = os.path.join("models", f"{model_name}.pkl")
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+    return joblib.load(model_path)
 
 # Function to build transaction graph and compute centrality features
 def build_graph(df):
@@ -117,10 +121,10 @@ def preprocess_data(df):
 
 # Load models
 models = {
-    "Isolation Forest": load_model_model("models/iso_forest_model"),
-    "Local Outlier Factor": load_model_model("models/lof_model"),
-    "One-Class SVM": load_model_model("models/best_model"),
-    "ARIMA": load_model_model("models/arima_model")  # Ensure proper saving/loading
+    "Isolation Forest": load_model_model("iso_forest_model"),
+    "Local Outlier Factor": load_model_model("lof_model"),
+    "One-Class SVM": load_model_model("best_model"),
+    "ARIMA": load_model_model("arima_model")  
 }
 # Load the pre-trained LSTM model, ignoring the loss function
 lstm_model = load_model('models/lstm_anomaly_detector.h5', compile=False)
