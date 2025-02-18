@@ -6,14 +6,18 @@ import chardet
 import networkx as nx
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.ensemble import VotingClassifier
 from sklearn.preprocessing import MinMaxScaler
+from sklearn.svm import OneClassSVM
+from sklearn.ensemble import IsolationForest
+from sklearn.neighbors import LocalOutlierFactor
 from tensorflow.keras.models import load_model
-import os
+from statsmodels.tsa.arima.model import ARIMA
 
 # Load models and scalers
 def load_model_model(model_name):
     return joblib.load(f"{model_name}.pkl")
-    
+
 # Function to build transaction graph and compute centrality features
 def build_graph(df):
     G = nx.DiGraph()
@@ -118,13 +122,13 @@ def preprocess_data(df):
 
 # Load models
 models = {
-    "Isolation Forest": load_model_model("models/iso_forest_model"),
-    "Local Outlier Factor": load_model_model("models/lof_model"),
-    "One-Class SVM": load_model_model("models/best_model"),
-    "ARIMA": load_model_model("models/arima_model")  
+    "Isolation Forest": load_model_model("iso_forest_model"),
+    "Local Outlier Factor": load_model_model("lof_model"),
+    "One-Class SVM": load_model_model("best_model"),
+    "ARIMA": load_model_model("arima_model")  # Ensure proper saving/loading
 }
 # Load the pre-trained LSTM model, ignoring the loss function
-lstm_model = load_model('models/lstm_anomaly_detector.h5', compile=False)
+lstm_model = load_model('lstm_anomaly_detector.h5', compile=False)
 
 # Function to plot anomalies
 def plot_anomalies_iso(df, model_name):
@@ -139,6 +143,7 @@ def plot_anomalies_iso(df, model_name):
     plt.title(f"Anomalies detected by {model_name}")
     plt.legend()
     st.pyplot(plt)
+
 
 
 # Function to plot anomalies
@@ -234,9 +239,9 @@ def predict_anomalies_arima(df, arima_model):
 # Ensemble model
 def ensemble_prediction(processed_data):
     # Get individual predictions
-    iso_forest = load_model_model("models/iso_forest_model")
-    lof = load_model_model("models/lof_model")
-    svm = load_model_model("models/best_model")
+    iso_forest = load_model_model("iso_forest_model")
+    lof = load_model_model("lof_model")
+    svm = load_model_model("best_model")
     
     iso_forest_pred = iso_forest.predict(processed_data)
     lof_pred = lof.predict(processed_data)
@@ -298,10 +303,7 @@ if st.button("Predict"):
             df["Prediction"] = ensemble_preds
             st.write("Ensemble Predictions:")
             st.write(df)
-            if 'NEAR_token_transaction_data' in uploaded_file.name:
-                plot_anomalies(df, "Ensemble")
-            else:
-                plot_anomalies_iso(df, "Ensemble")
+            plot_anomalies(df, "Ensemble")
             normal_count = df['Prediction'].value_counts().get('Normal', 0)
             anomaly_count = df['Prediction'].value_counts().get('Anomaly', 0)
             st.write(f"Total Normal Points: {normal_count}")
@@ -315,10 +317,7 @@ if st.button("Predict"):
             predictions[model_choice] = ["Normal" if p == -1 else "Anomaly" for p in svm_predictions]
             result_df = df.copy()
             result_df["Prediction"] = predictions[model_choice]
-            if 'NEAR_token_transaction_data' in uploaded_file.name:
-                plot_anomalies(result_df, "One-Class SVM")
-            else:
-                plot_anomalies_iso(result_df, "One-Class SVM")
+            plot_anomalies(result_df, "One-Class SVM")
             normal_count = result_df['Prediction'].value_counts().get('Normal', 0)
             anomaly_count = result_df['Prediction'].value_counts().get('Anomaly', 0)
             st.write(f"One-Class SVM Predictions: ")
@@ -330,10 +329,7 @@ if st.button("Predict"):
             predictions[model_choice] = ["Normal" if p == -1 else "Anomaly" for p in lof_predictions]
             result_df = df.copy()
             result_df["Prediction"] = predictions[model_choice]
-            if 'NEAR_token_transaction_data' in uploaded_file.name:
-                plot_anomalies(result_df, "Local Outlier Factor")
-            else:
-                plot_anomalies_iso(result_df, "Local Outlier Factor")
+            plot_anomalies(result_df, "Local Outlier Factor")
             normal_count = result_df['Prediction'].value_counts().get('Normal', 0)
             anomaly_count = result_df['Prediction'].value_counts().get('Anomaly', 0)
             st.write(f"Local Outlier Factor Predictions: ")
@@ -354,10 +350,7 @@ if st.button("Predict"):
 
             ensemble_preds = ensemble_prediction(processed_data)
             df["Prediction"] = ensemble_preds
-            if 'NEAR_token_transaction_data' in uploaded_file.name:
-                plot_anomalies(df, "Ensemble")
-            else:
-                plot_anomalies_iso(df, "Ensemble")
+            plot_anomalies(df, "Ensemble")
             normal_count = df['Prediction'].value_counts().get('Normal', 0)
             anomaly_count = df['Prediction'].value_counts().get('Anomaly', 0)
             st.write(f"Ensemble Predictions:")
@@ -450,6 +443,58 @@ if st.button("Predict"):
             csv = df_arima.to_csv(index=False).encode('utf-8')
             st.download_button(f"Download {model_choice} Predictions", csv, f"{model_choice}_predictions.csv", "text/csv", key=f'download-{model_choice}')
         
+        elif model_choice=="LSTM":
+            # Preprocess the new data
+            daily_quantity = preprocess_data_for_lstm(df)
+            if daily_quantity is not None:
+                # Normalize data
+                scaler = MinMaxScaler()
+                scaled_data = scaler.fit_transform(daily_quantity)
+                
+                # Create sequences for prediction
+                window_size = 30  # The same window size as used in training
+                X_new = create_sequences(scaled_data, window_size)
+                
+                # Predict using the model
+                predictions = lstm_model.predict(X_new)
+
+                # Calculate MSE (Reconstruction Error)
+                mse = np.mean(np.square(predictions - scaled_data[window_size:]), axis=1)
+                
+                # Set anomaly threshold (95th percentile of MSE)
+                threshold = np.percentile(mse, 95)
+                anomalies = mse > threshold
+                
+                # Create results dataframe
+                results = daily_quantity.iloc[window_size:].copy()
+                results['Predicted'] = scaler.inverse_transform(predictions)
+                results['MSE'] = mse
+                results['Anomaly'] = anomalies
+
+                # Display results
+                st.write("Anomalies Detected:", sum(anomalies))
+                st.write("Threshold MSE:", threshold)
+                
+                # Plot actual vs predicted values with anomalies
+                fig, ax = plt.subplots(figsize=(14, 6))
+                ax.plot(results.index, results['Quantity'], label='Actual Quantity', color='blue')
+                ax.plot(results.index, results['Predicted'], label='Predicted', color='orange', linestyle='--')
+                ax.scatter(results[results['Anomaly']].index,
+                        results[results['Anomaly']]['Quantity'],
+                        color='red', label='Anomaly')
+                ax.set_title('LSTM Anomaly Detection')
+                ax.set_xlabel('Date')
+                ax.set_ylabel('Quantity')
+                ax.legend()
+                ax.grid(True)
+                st.pyplot(fig)
+                st.write("LSTM Predictions:")
+                # Display results
+                st.write("Anomalies Detected:", sum(anomalies))
+
+                # Display anomalies
+                st.write(results[results['Anomaly']][['Quantity', 'MSE']])
+
         elif model_choice== "Isolation Forest":
             # Run the selected model
             model = models.get(model_choice)
@@ -472,55 +517,7 @@ if st.button("Predict"):
 
                 csv = result_df.to_csv(index=False).encode('utf-8')
                 st.download_button(f"Download {model_choice} Predictions", csv, f"{model_choice}_predictions.csv", "text/csv", key=f'download-{model_choice}')
-
-            elif model_choice=="LSTM":
-                # Preprocess the new data
-                daily_quantity = preprocess_data_for_lstm(df)
-                if daily_quantity is not None:
-                    # Normalize data
-                    scaler = MinMaxScaler()
-                    scaled_data = scaler.fit_transform(daily_quantity)
-                    
-                    # Create sequences for prediction
-                    window_size = 30  # The same window size as used in training
-                    X_new = create_sequences(scaled_data, window_size)
-                    
-                    # Predict using the model
-                    predictions = lstm_model.predict(X_new)
-
-                    # Calculate MSE (Reconstruction Error)
-                    mse = np.mean(np.square(predictions - scaled_data[window_size:]), axis=1)
-                    
-                    # Set anomaly threshold (95th percentile of MSE)
-                    threshold = np.percentile(mse, 95)
-                    anomalies = mse > threshold
-                    
-                    # Create results dataframe
-                    results = daily_quantity.iloc[window_size:].copy()
-                    results['Predicted'] = scaler.inverse_transform(predictions)
-                    results['MSE'] = mse
-                    results['Anomaly'] = anomalies
-
-                    # Display results
-                    st.write("Anomalies Detected:", sum(anomalies))
-                    st.write("Threshold MSE:", threshold)
-                    
-                    # Plot actual vs predicted values with anomalies
-                    fig, ax = plt.subplots(figsize=(14, 6))
-                    ax.plot(results.index, results['Quantity'], label='Actual Quantity', color='blue')
-                    ax.plot(results.index, results['Predicted'], label='Predicted', color='orange', linestyle='--')
-                    ax.scatter(results[results['Anomaly']].index,
-                            results[results['Anomaly']]['Quantity'],
-                            color='red', label='Anomaly')
-                    ax.set_title('LSTM Anomaly Detection')
-                    ax.set_xlabel('Date')
-                    ax.set_ylabel('Quantity')
-                    ax.legend()
-                    ax.grid(True)
-                    st.pyplot(fig)
-
-                    # Display anomalies
-                    st.write(results[results['Anomaly']][['Quantity', 'MSE']])
+    
 
         else:
             # Run the selected model
@@ -534,10 +531,7 @@ if st.button("Predict"):
                 st.write(f"Predictions from {model_choice} model:")
                 st.write(result_df)
 
-                if 'NEAR_token_transaction_data' in uploaded_file.name:
-                    plot_anomalies(result_df, model_choice)
-                else:
-                    plot_anomalies_iso(result_df, model_choice)
+                plot_anomalies(result_df, model_choice)
 
                 normal_count = result_df['Prediction'].value_counts().get('Normal', 0)
                 anomaly_count = result_df['Prediction'].value_counts().get('Anomaly', 0)
