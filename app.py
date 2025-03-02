@@ -119,13 +119,13 @@ def preprocess_data(df):
 
 # Load models
 models = {
-    "Isolation Forest": load_model_model("iso_forest_model"),
-    "Local Outlier Factor": load_model_model("lof_model"),
-    "One-Class SVM": load_model_model("best_model"),
-    "ARIMA": load_model_model("arima_model")  # Ensure proper saving/loading
+    "Isolation Forest": load_model_model("models/iso_forest_model"),
+    "Local Outlier Factor": load_model_model("models/lof_model"),
+    "One-Class SVM": load_model_model("models/best_model"),
+    "ARIMA": load_model_model("models/arima_model")  # Ensure proper saving/loading
 }
 # Load the pre-trained LSTM model, ignoring the loss function
-lstm_model = load_model('lstm_anomaly_detector.h5', compile=False)
+lstm_model = load_model('models/lstm_anomaly_detector.h5', compile=False)
 
 # Function to plot anomalies
 def plot_anomalies_iso(df, model_name):
@@ -236,9 +236,9 @@ def predict_anomalies_arima(df, arima_model):
 # Ensemble model
 def ensemble_prediction(processed_data):
     # Get individual predictions
-    iso_forest = load_model_model("iso_forest_model")
-    lof = load_model_model("lof_model")
-    svm = load_model_model("best_model")
+    iso_forest = load_model_model("models/iso_forest_model")
+    lof = load_model_model("models/lof_model")
+    svm = load_model_model("models/best_model")
     
     iso_forest_pred = iso_forest.predict(processed_data)
     lof_pred = lof.predict(processed_data)
