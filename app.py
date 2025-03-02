@@ -8,9 +8,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import VotingClassifier
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.svm import OneClassSVM
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor
 from tensorflow.keras.models import load_model
 from statsmodels.tsa.arima.model import ARIMA
 
@@ -488,13 +485,9 @@ if st.button("Predict"):
                 ax.legend()
                 ax.grid(True)
                 st.pyplot(fig)
-                st.write("LSTM Predictions:")
-                # Display results
-                st.write("Anomalies Detected:", sum(anomalies))
 
                 # Display anomalies
                 st.write(results[results['Anomaly']][['Quantity', 'MSE']])
-
         elif model_choice== "Isolation Forest":
             # Run the selected model
             model = models.get(model_choice)
